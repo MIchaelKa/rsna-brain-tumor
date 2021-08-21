@@ -28,7 +28,7 @@ def train_num_iter(model, device, data_loader, criterion, optimizer, max_iter, v
 
         output = model(x_batch)
 
-        # will be faster to return float from the dataset?
+        # TODO: will be faster to return float from the dataset?
         y_batch = y_batch.type_as(output)
 
         loss = criterion(output.squeeze(1), y_batch)
@@ -48,10 +48,12 @@ def train_num_iter(model, device, data_loader, criterion, optimizer, max_iter, v
         t_score = score_meter.compute_score()
 
         if verbose and iter_num % print_every == 0:
-            print('[train] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, time: {}'
-                .format(iter_num, t_loss_avg, t_score, format_time(time.time() - t1)))
+            print('[train] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, batch: {}, time: {}'
+                .format(iter_num, t_loss_avg, t_score, x_batch.shape, format_time(time.time() - t1)))
 
 
     if verbose:
         print('[train] finished for: {}'.format(format_time(time.time() - t0)))
+
+    return loss_meter, score_meter
 

@@ -16,6 +16,7 @@ class AccuracyMeter():
         self.total_correct_samples = 0
         self.total_samples = 0
 
+    # TODO: move this out
     def get_predictions(self, output):
         y_pred = (output > 0)#.float()
 

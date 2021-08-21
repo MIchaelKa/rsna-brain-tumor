@@ -41,7 +41,7 @@ class Image3DDataset(Dataset):
             # H x W 
             image = np.array(image).astype(np.float32)
             
-            # image -= 128?
+            # TODO: image -= 128?
             image /= 255
             
             
