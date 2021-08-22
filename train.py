@@ -21,7 +21,11 @@ def train_num_iter(model, device, data_loader, criterion, optimizer, max_iter, v
 
         t1 = time.time()
 
-        x_batch, y_batch = next(data_loader_iter)
+        try:
+            x_batch, y_batch = next(data_loader_iter)
+        except StopIteration:
+            data_loader_iter = iter(data_loader)
+            x_batch, y_batch = next(data_loader_iter)
 
         x_batch = x_batch.to(device, dtype=torch.float32)
         y_batch = y_batch.to(device, dtype=torch.long)
