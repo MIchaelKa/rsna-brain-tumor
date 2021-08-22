@@ -11,8 +11,11 @@ class AccuracyMeter():
 
     def reset(self):
         self.history = []
+
+        self.outputs = []
         self.predictions = []
         self.ground_truth = []
+
         self.total_correct_samples = 0
         self.total_samples = 0
 
@@ -40,6 +43,9 @@ class AccuracyMeter():
         # Save data for calculating of confusion matrix
         self.predictions.append(y_pred)
         self.ground_truth.append(y_batch)
+
+        # Save other
+        self.outputs.append(output)
 
     def compute_score(self):
         return float(self.total_correct_samples) / self.total_samples
