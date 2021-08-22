@@ -6,10 +6,11 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class Image3DDataset(Dataset):
-    def __init__(self, df, path, transform=None):
+    def __init__(self, df, path, max_depth, transform=None):
 
         self.df = df
         self.path = path
+        self.max_depth = max_depth
         self.transform = transform
         
     def __len__(self):
@@ -43,14 +44,21 @@ class Image3DDataset(Dataset):
             
             # TODO: image -= 128?
             image /= 255
-            
-            
+                      
             # C x H x W
-            image = np.expand_dims(image, axis=0)
+            # image = np.expand_dims(image, axis=0)
                     
             images.append(image)
-            
-        # C x D x H x W
-        image_3d = np.stack(images, axis=1)
                
+        image_3d = np.stack(images, axis=0) # D x H x W
+        D, H, W = image_3d.shape
+        # print(D, H, W)
+
+        if D > self.max_depth:
+            image_3d = image_3d[:self.max_depth,:,:]
+        else:
+            image_3d = np.concatenate((image_3d, np.zeros((self.max_depth - D, H, W))), axis=0)
+
+        image_3d = np.expand_dims(image_3d, axis=0) # C x D x H x W
+          
         return image_3d, label
