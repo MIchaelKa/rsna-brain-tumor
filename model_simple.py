@@ -11,16 +11,16 @@ class Simple3DNet(nn.Module):
             nn.Conv3d(1, channels[0], kernel_size=3, stride=1, padding=1, bias=False),
 #             nn.BatchNorm3d(64),
             nn.ReLU(),
-            nn.Conv3d(channels[0], channels[0], kernel_size=3, stride=1, padding=1, bias=False),
-            nn.ReLU(),
+            # nn.Conv3d(channels[0], channels[0], kernel_size=3, stride=1, padding=1, bias=False),
+            # nn.ReLU(),
 
             nn.MaxPool3d(2),
             # 13x16x16
             
             nn.Conv3d(channels[0], channels[1], kernel_size=3, stride=1, padding=1, bias=False),
             nn.ReLU(),
-            nn.Conv3d(channels[1], channels[1], kernel_size=3, stride=1, padding=1, bias=False),
-            nn.ReLU(),
+            # nn.Conv3d(channels[1], channels[1], kernel_size=3, stride=1, padding=1, bias=False),
+            # nn.ReLU(),
             nn.MaxPool3d(2),
             # 6x8x8
             
@@ -39,7 +39,7 @@ class Simple3DNet(nn.Module):
         
     def forward(self, x):  
         x = self.backbone(x)
-        # x = self.avgpool(x)
-        # x = torch.flatten(x, 1)
-        # x = self.fc(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.fc(x)
         return x

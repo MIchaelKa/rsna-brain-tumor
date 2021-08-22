@@ -24,6 +24,9 @@ def seed_everything(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
 
+def get_num_of_params(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 #
 # time utils
 #
