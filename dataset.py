@@ -31,6 +31,13 @@ class Image3DDataset(Dataset):
 
         # name = 'Image-100.png'
         image_names = sorted(os.listdir(images_path), key=lambda name: int(name[6:][:-4]))
+
+        # take slices from the middle
+        image_num = len(image_names)
+        if image_num > self.max_depth:
+            start_index = (image_num - self.max_depth) // 2
+            image_names = image_names[start_index:self.max_depth+start_index]
+
         images = []
         
         for image_name in image_names:
@@ -54,10 +61,19 @@ class Image3DDataset(Dataset):
         D, H, W = image_3d.shape
         # print(D, H, W)
 
-        if D > self.max_depth:
-            image_3d = image_3d[:self.max_depth,:,:]
-        else:
-            image_3d = np.concatenate((image_3d, np.zeros((self.max_depth - D, H, W))), axis=0)
+        # pad with zeros if not not enough images
+        if D < self.max_depth:
+            pad_start = (self.max_depth - D) // 2
+            pad_end = (self.max_depth - D + 1) // 2
+
+            image_3d = np.concatenate(
+                (
+                    np.zeros((pad_start, H, W)),
+                    image_3d,
+                    np.zeros((pad_end, H, W))
+                ),
+                axis=0
+            )
 
         image_3d = np.expand_dims(image_3d, axis=0) # C x D x H x W
           

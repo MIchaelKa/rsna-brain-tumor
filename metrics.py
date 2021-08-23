@@ -19,9 +19,20 @@ class AccuracyMeter():
         self.total_correct_samples = 0
         self.total_samples = 0
 
-    # TODO: move this out
-    def get_predictions(self, output):
-        y_pred = (output > 0)#.float()
+    def get_outputs(self):
+        return torch.cat(self.outputs).detach().cpu().numpy()
+    
+    def get_predictions(self):
+        return torch.cat(self.predictions).cpu().numpy()
+
+    def get_ground_truth(self):
+        return torch.cat(self.ground_truth).cpu().numpy()
+
+    def get_pred_from_output(self, output):
+
+        y_pred = (output > 0)
+
+        # y_pred = (output > 0).float()
 
         # y_pred = torch.sigmoid(output)
         # y_pred = y_pred > 0.5
@@ -29,18 +40,18 @@ class AccuracyMeter():
         return y_pred
 
     def update(self, y_batch, output):
-        y_pred = self.get_predictions(output)
+        y_pred = self.get_pred_from_output(output)
         correct_samples = torch.sum(y_pred == y_batch)
         
-        # this is not the history of avg values
-        # instead this is history of acc from single batches
+        # This is not the history of avg. values,
+        # instead this is history of acc from single batches.
         accuracy = float(correct_samples) / y_batch.shape[0]
         self.history.append(accuracy) 
 
         self.total_correct_samples += correct_samples
         self.total_samples += y_batch.shape[0]
 
-        # Save data for calculating of confusion matrix
+        # Save the data for calculating of confusion matrix
         self.predictions.append(y_pred)
         self.ground_truth.append(y_batch)
 
