@@ -43,8 +43,6 @@ class AccuracyMeter():
         y_pred = self.get_pred_from_output(output)
         correct_samples = torch.sum(y_pred == y_batch)
         
-        # This is not the history of avg. values,
-        # instead this is history of acc from single batches.
         accuracy = float(correct_samples) / y_batch.shape[0]
         self.history.append(accuracy) 
 
@@ -60,6 +58,13 @@ class AccuracyMeter():
 
     def compute_score(self):
         return float(self.total_correct_samples) / self.total_samples
+
+    def moving_average(self, alpha):
+        avg_history = [self.history[0]]
+        for i in range(1, len(self.history)):
+            moving_avg = alpha * avg_history[-1] + (1 - alpha) * self.history[i]
+            avg_history.append(moving_avg)
+        return avg_history
 
     # def compute_cm(self):
     #     predictions = torch.cat(self.predictions).cpu().numpy()
