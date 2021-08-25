@@ -25,18 +25,18 @@ def validate(model, device, valid_loader, criterion, verbose=True, print_every=1
             loss = criterion(output.squeeze(1), y_batch)
             
             # Update loss meter
-            t_loss = loss.item()
-            loss_meter.update(t_loss)
+            loss_item = loss.item()
+            loss_meter.update(loss_item)
 
             # Update score meter
             score_meter.update(y_batch, output.squeeze(1))
 
             if verbose and iter_num % print_every == 0:
-                t_loss_avg = loss_meter.compute_average()
-                t_score = score_meter.compute_score()
+                loss_avg = loss_meter.compute_average()
+                score = score_meter.compute_score()
 
                 print('[valid] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, time: {}'
-                    .format(iter_num, t_loss_avg, t_score, format_time(time.time() - t0)))
+                    .format(iter_num, loss_avg, score, format_time(time.time() - t0)))
    
     return loss_meter, score_meter
 
@@ -55,8 +55,13 @@ def train_num_iter(
 
     t0 = time.time()
 
-    loss_meter = AverageMeter()
-    score_meter = AccuracyMeter()
+    print('[train] started...')
+
+    train_loss_meter = AverageMeter()
+    train_score_meter = AccuracyMeter()
+
+    train_loss_history = []
+    train_score_history = []
 
     valid_loss_history = []
     valid_score_history = []
@@ -66,6 +71,7 @@ def train_num_iter(
     
     data_loader_iter = iter(data_loader)
 
+    valid_iters_copy = valid_iters.copy()
     valid_iter_num = get_next_valid_iter(valid_iters)
 
     for iter_num in range(0, max_iter):
@@ -86,6 +92,9 @@ def train_num_iter(
         # TODO: will be faster to return float from the dataset?
         y_batch = y_batch.type_as(output)
 
+        # TODO:
+        # output = output.squeeze(1)
+
         loss = criterion(output.squeeze(1), y_batch)
         # loss = criterion(output, y_batch)
         
@@ -94,44 +103,63 @@ def train_num_iter(
         optimizer.step()
 
         # Update loss meter
-        t_loss = loss.item()
-        loss_meter.update(t_loss)
+        loss_item = loss.item()
+        train_loss_meter.update(loss_item)
 
         # Update score meter
-        score_meter.update(y_batch, output.squeeze(1))
+        train_score_meter.update(y_batch, output.squeeze(1))
 
-        if verbose and iter_num % print_every == 0:
-            t_loss_avg = loss_meter.compute_average()
-            t_score = score_meter.compute_score()
+        # if verbose and iter_num % print_every == 0:
+        #     t_loss_avg = train_loss_meter.compute_average()
+        #     t_score = train_score_meter.compute_score()
 
-            print('[train] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, time: {}'
-                .format(iter_num, t_loss_avg, t_score, format_time(time.time() - t0)))
+        #     print('[train] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, time: {}'
+        #         .format(iter_num, t_loss_avg, t_score, format_time(time.time() - t0)))
 
         
         if iter_num == valid_iter_num:
-            v_loss_meter, v_score_meter = validate(model, device, valid_loader, criterion, verbose=False, print_every=5)
             valid_iter_num = get_next_valid_iter(valid_iters)
 
-            model.train()
+            v_loss_meter, v_score_meter = validate(model, device, valid_loader, criterion, verbose=False, print_every=5)
 
-            v_loss_avg = loss_meter.compute_average()
-            v_score = score_meter.compute_score()
+            # TODO: one more train meters to reset it here?
+
+            t_loss_avg = train_loss_meter.compute_average()
+            t_score = train_score_meter.compute_score()
+            
+            train_loss_history.append(t_loss_avg)
+            train_score_history.append(t_score)
+
+            v_loss_avg = v_loss_meter.compute_average()
+            v_score = v_score_meter.compute_score()
 
             valid_loss_history.append(v_loss_avg)
             valid_score_history.append(v_score)
 
+            # TODO: move out and see performance and time
+            model.train()
+
             if verbose:
+                print('[train] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, time: {}'
+                    .format(iter_num, t_loss_avg, t_score, format_time(time.time() - t0)))
                 print('[valid] iter: {:>4d}, loss = {:.5f}, score = {:.5f}, time: {}'
                     .format(iter_num, v_loss_avg, v_score, format_time(time.time() - t0)))
+                print('')
 
     if verbose:
         print('[train] finished for: {}'.format(format_time(time.time() - t0)))
 
     train_info = {
-        'train_loss_meter' : loss_meter,
-        'train_score_meter' : score_meter,
+        'train_loss_meter' : train_loss_meter,
+        'train_score_meter' : train_score_meter,
+
+        'train_loss_history' : train_loss_history,
+        'train_score_history' : train_score_history,
+
         'valid_loss_history' : valid_loss_history,
         'valid_score_history' : valid_score_history,
+
+        'valid_iters' : valid_iters_copy
     }
 
     return train_info

@@ -6,7 +6,7 @@ class Simple3DNet(nn.Module):
         super().__init__()
 
         channels = [64, 128, 256, 512]
-        conv_bias = False
+        conv_bias = True
         relu_inplace = True
 
         # nn.BatchNorm3d(channels[0]),

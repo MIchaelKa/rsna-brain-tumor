@@ -89,6 +89,8 @@ class AverageMeter():
     def compute_average(self):
         return np.mean(self.history)
 
+    # history of avg. values when alpha=0.5 ?
+    # can we make it?
     def moving_average(self, alpha):
         avg_history = [self.history[0]]
         for i in range(1, len(self.history)):
