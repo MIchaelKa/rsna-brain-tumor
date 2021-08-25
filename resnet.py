@@ -43,9 +43,9 @@ class ResNet3D(nn.Module):
         channels = [64, 128, 256]
         # channels = [64, 256, 512]
 
-
         # TODO: less aggressive stride along D direction?
 
+        # TODO: add one more conv or use conv7x7
         self.stem = nn.Sequential(
             nn.Conv3d(1, channels[0], kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm3d(channels[0]),
@@ -65,7 +65,13 @@ class ResNet3D(nn.Module):
         # 256*4*16*16 = 262144
         # self.fc = nn.Linear(256*4*16*16, 1)
 
-    
+        # for m in self.modules():
+        #     if isinstance(m, nn.Conv3d):
+        #         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        #     elif isinstance(m, (nn.BatchNorm3d, nn.GroupNorm)):
+        #         nn.init.constant_(m.weight, 1)
+        #         nn.init.constant_(m.bias, 0)
+
     def _make_layer(self, blocks, in_channels, out_channels, stride=1):
         layers = []
         layers.append(ResidualBlock(in_channels, out_channels, stride))
@@ -73,8 +79,6 @@ class ResNet3D(nn.Module):
             layers.append(ResidualBlock(out_channels, out_channels))
         return nn.Sequential(*layers)
      
-        
-        
     def forward(self, x):
         x = self.stem(x)
         x = self.layer1(x)

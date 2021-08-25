@@ -49,8 +49,9 @@ class Image3DDataset(Dataset):
             # H x W 
             image = np.array(image).astype(np.float32)
             
-            # TODO: image -= 128?
+            # image -= 128
             image /= 255
+            image -= 0.5
                       
             # C x H x W
             # image = np.expand_dims(image, axis=0)
