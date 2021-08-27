@@ -39,12 +39,35 @@ class Image3DDataset(Dataset):
             image_names = image_names[start_index:self.max_depth+start_index]
 
         images = []
+
+        x_min_all, y_min_all = 512, 512
+        x_max_all, y_max_all = 0, 0
         
         for image_name in image_names:
             image_path = os.path.join(images_path, image_name)
             image = Image.open(image_path)
-            if self.transform:
-                image = self.transform(image)
+
+            rows, cols = np.nonzero(image)
+
+            xmin = np.min(cols)
+            xmax = np.max(cols)
+            ymin = np.min(rows)
+            ymax = np.max(rows)
+
+            if xmin < x_min_all:
+                x_min_all = xmin
+
+            if xmax > x_max_all:
+                x_max_all = xmax
+
+            if ymin < y_min_all:
+                y_min_all = ymin
+
+            if ymax > y_max_all:
+                y_max_all = ymax
+
+            # if self.transform:
+            #     image = self.transform(image)
             
             # H x W 
             image = np.array(image).astype(np.float32)
@@ -59,9 +82,24 @@ class Image3DDataset(Dataset):
             images.append(image)
                
         image_3d = np.stack(images, axis=0) # D x H x W
-        D, H, W = image_3d.shape
-        # print(D, H, W)
+        # print(image_3d.shape)
+        # print((x_min_all, y_min_all), (x_max_all, y_max_all))
 
+        image_3d = image_3d[:, y_min_all:y_max_all, x_min_all:x_max_all]
+        # print(image_3d.shape)
+
+        images = []
+        for image in image_3d:
+            if self.transform: 
+                image = self.transform(Image.fromarray(image))
+                # image = self.transform(image)
+            images.append(image)
+
+        image_3d = np.stack(images, axis=0)
+        # print(image_3d.shape)
+
+        D, H, W = image_3d.shape
+        
         # pad with zeros if not not enough images
         if D < self.max_depth:
             pad_start = (self.max_depth - D) // 2
