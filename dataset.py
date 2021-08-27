@@ -98,8 +98,34 @@ class Image3DDataset(Dataset):
         image_3d = np.stack(images, axis=0)
         # print(image_3d.shape)
 
+        D = image_3d.shape[0]
+
+        # reflective padding
+        if D < self.max_depth:
+            pad_start = (self.max_depth - D) // 2
+            pad_end = (self.max_depth - D) // 2
+
+            # print(D, pad_start, pad_end)
+
+            if pad_start > D:
+                pad_start = D
+
+            if pad_end > D:
+                pad_end = D
+
+            image_3d = np.concatenate(
+                (
+                    image_3d[pad_start:0:-1,:,:],
+                    image_3d,
+                    image_3d[-2:-pad_end-2:-1,:,:]
+                ),
+                axis=0
+            )
+            
+        # print(image_3d.shape)
+
         D, H, W = image_3d.shape
-        
+
         # pad with zeros if not not enough images
         if D < self.max_depth:
             pad_start = (self.max_depth - D) // 2
@@ -113,6 +139,8 @@ class Image3DDataset(Dataset):
                 ),
                 axis=0
             )
+
+        # print(image_3d.shape)
 
         image_3d = np.expand_dims(image_3d, axis=0) # C x D x H x W
           

@@ -5,7 +5,7 @@ class Simple3DNet(nn.Module):
     def __init__(self):
         super().__init__()
 
-        channels = [64, 128, 256, 512]
+        channels = [64, 128, 256]
         conv_bias = True
         relu_inplace = True
 
