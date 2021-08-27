@@ -84,6 +84,31 @@ def get_dataset(
 
     return train_dataset, valid_dataset
 
+def get_optimizer(name, parameters, lr, weight_decay):
+    
+
+    if name == 'Adam':
+        half_precision = False
+        eps = 1e-4 if half_precision else 1e-08
+        optimizer = torch.optim.Adam(
+            parameters,
+            lr=lr,
+            weight_decay=weight_decay,
+            eps=eps
+        )
+    elif name == 'SGD':
+        optimizer = torch.optim.SGD(
+            parameters,
+            lr=lr,
+            momentum=0.9,
+            weight_decay=weight_decay,
+            nesterov=True
+        )
+    else:
+        print("[error]: Unsupported optimizer.")
+    
+    return optimizer
+
 #
 # run
 #
@@ -102,9 +127,10 @@ def run(
     max_iter=100,
     valid_iters=[],
 
+    optimizer_name='Adam',
     learning_rate=3e-4,
     weight_decay=1e-3,
-    
+
     verbose=True
 ):
 
@@ -122,13 +148,7 @@ def run(
 
     criterion = nn.BCEWithLogitsLoss()
 
-    optimizer = torch.optim.SGD(
-        model.parameters(),
-        lr=learning_rate,
-        momentum=0.9,
-        weight_decay=weight_decay,
-        nesterov=True
-    )
+    optimizer = get_optimizer(optimizer_name, model.parameters(), learning_rate, weight_decay)
 
     train_info = train_num_iter(
         model, device,
@@ -152,6 +172,8 @@ def print_params(params):
         f"batch_size_valid = {params['batch_size_valid']}\n"
         f"max_iter = {params['max_iter']}\n"
         f"valid_iters = {params['valid_iters']}\n"
+        f"\n"
+        f"optimizer_name = {params['optimizer_name']}\n"
         f"learning_rate = {params['learning_rate']}\n"
         f"weight_decay = {params['weight_decay']}\n"
     )
@@ -176,6 +198,7 @@ def main(path_to_data, path_to_img):
         max_iter=6,
         valid_iters=[1, 3, 5],
 
+        optimizer_name='Adam',
         learning_rate=0.001,
         weight_decay=0,
 
