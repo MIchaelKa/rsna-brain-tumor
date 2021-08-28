@@ -6,11 +6,13 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class Image3DDataset(Dataset):
-    def __init__(self, df, path, max_depth, transform=None):
+    def __init__(self, df, path, max_depth=None, zero_pad=True, reflective_pad=True, transform=None):
 
         self.df = df
         self.path = path
         self.max_depth = max_depth
+        self.zero_pad = zero_pad
+        self.reflective_pad = reflective_pad
         self.transform = transform
         
     def __len__(self):
@@ -98,50 +100,146 @@ class Image3DDataset(Dataset):
         image_3d = np.stack(images, axis=0)
         # print(image_3d.shape)
 
-        D = image_3d.shape[0]
+        if self.reflective_pad:
+            D = image_3d.shape[0]
+            if D < self.max_depth:
+                pad_start = (self.max_depth - D) // 2
+                pad_end = (self.max_depth - D) // 2
 
-        # reflective padding
-        if D < self.max_depth:
-            pad_start = (self.max_depth - D) // 2
-            pad_end = (self.max_depth - D) // 2
+                # print(D, pad_start, pad_end)
 
-            # print(D, pad_start, pad_end)
+                if pad_start > D:
+                    pad_start = D
 
-            if pad_start > D:
-                pad_start = D
+                if pad_end > D:
+                    pad_end = D
 
-            if pad_end > D:
-                pad_end = D
+                image_3d = np.concatenate(
+                    (
+                        image_3d[pad_start:0:-1,:,:],
+                        image_3d,
+                        image_3d[-2:-pad_end-2:-1,:,:]
+                    ),
+                    axis=0
+                )
+            
+        # print(image_3d.shape)
 
-            image_3d = np.concatenate(
+        # pad with zeros if not not enough images
+        if self.zero_pad:
+            D, H, W = image_3d.shape         
+            if D < self.max_depth:
+                pad_start = (self.max_depth - D) // 2
+                pad_end = (self.max_depth - D + 1) // 2
+
+                image_3d = np.concatenate(
+                    (
+                        np.zeros((pad_start, H, W)),
+                        image_3d,
+                        np.zeros((pad_end, H, W))
+                    ),
+                    axis=0
+                )
+
+        # print(image_3d.shape)
+
+        # TODO: remove when used with IterableDataset
+        image_3d = np.expand_dims(image_3d, axis=0) # C x D x H x W
+          
+        return image_3d, label
+
+#
+# DepthGroupedDataset
+#
+
+import torch
+from torch.utils.data import IterableDataset
+
+class DepthGroupedDataset(IterableDataset):
+
+    def __init__(self, data_loader, batch_size, max_depth):
+
+        self.data_loader = data_loader
+        self.batch_size = batch_size
+        
+        self.tresholds = [0, 32, 64, 128, 192, 256]
+        num_buckets = len(self.tresholds) - 1
+        
+        self._buckets = [[] for _ in range(num_buckets)]
+        
+
+    def bucket_id_for_image_depth(self, depth):
+        for i in range(0, len(self.tresholds)):
+            t_min = self.tresholds[i]
+            t_max = self.tresholds[i+1]
+            
+            if depth > t_min and depth <= t_max:
+                return i
+
+    def __iter__(self):
+        for d in self.data_loader:
+            x, y = d
+            
+            D = x.shape[2] # TODO: should it be 2?
+
+            bucket_id = self.bucket_id_for_image_depth(D)
+            # print(D, x.shape, bucket_id)
+    
+            bucket = self._buckets[bucket_id]
+            bucket.append(d)
+            if len(bucket) == self.batch_size:
+                x, y = zip(*bucket)
+                # TODO: calculate zero pad amount
+                x = self.process_images(x)
+                y = torch.cat(y, axis=0)
+                
+                yield x, y
+
+                # print(f'del bucket {bucket_id}')
+                del bucket[:]
+    
+    def process_images(self, images):
+        
+        # print('process_images')
+        
+        max_d_image = max(images, key=lambda image: image.shape[2])
+        max_d = max_d_image.shape[2]
+        
+        pad_images = []
+        for image in images:
+            # print(image.shape)
+
+            # D x H x W
+            image = self.zero_pad(image.squeeze(), max_d)
+            # print(image.shape)
+
+            # C x D x H x W
+            image = image.unsqueeze(0)
+            pad_images.append(image)
+
+
+        image_batch = torch.stack(pad_images, axis=0)
+        return image_batch
+            
+        
+    # TODO: move
+    def reflective_pad(self, image, max_depth):
+        pass
+    
+    def zero_pad(self, image, max_depth):
+        D, H, W = image.shape
+        
+        if D < max_depth:
+            pad_start = (max_depth - D) // 2
+            pad_end = (max_depth - D + 1) // 2
+
+            image = torch.cat(
                 (
-                    image_3d[pad_start:0:-1,:,:],
-                    image_3d,
-                    image_3d[-2:-pad_end-2:-1,:,:]
+                    torch.zeros((pad_start, H, W)),
+                    image,
+                    torch.zeros((pad_end, H, W))
                 ),
                 axis=0
             )
             
-        # print(image_3d.shape)
-
-        D, H, W = image_3d.shape
-
-        # pad with zeros if not not enough images
-        if D < self.max_depth:
-            pad_start = (self.max_depth - D) // 2
-            pad_end = (self.max_depth - D + 1) // 2
-
-            image_3d = np.concatenate(
-                (
-                    np.zeros((pad_start, H, W)),
-                    image_3d,
-                    np.zeros((pad_end, H, W))
-                ),
-                axis=0
-            )
-
-        # print(image_3d.shape)
-
-        image_3d = np.expand_dims(image_3d, axis=0) # C x D x H x W
-          
-        return image_3d, label
+        return image

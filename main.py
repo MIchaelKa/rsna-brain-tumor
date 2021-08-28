@@ -5,7 +5,7 @@ from train import train_num_iter
 from utils import get_device
 from utils import seed_everything
 
-from dataset import Image3DDataset
+from dataset import DepthGroupedDataset, Image3DDataset
 from model_simple import Simple3DNet
 
 import pandas as pd
@@ -48,6 +48,8 @@ def get_dataset(
     reduce_train,
     train_number,
     valid_number,
+    max_depth,
+    depth_grouped
 ):
     IMG_SIZE = 256
     MAX_DEPTH = 64
@@ -79,14 +81,22 @@ def get_dataset(
         valid_df = valid_df.head(valid_number)
         print(f'[data] Reduced dataset size, train: {len(train_df)}, valid: {len(valid_df)}')
 
-    train_dataset = Image3DDataset(train_df, path_to_img_train, MAX_DEPTH, get_train_transform(IMG_SIZE))
-    valid_dataset = Image3DDataset(valid_df, path_to_img_train, MAX_DEPTH, get_train_transform(IMG_SIZE))
+
+    if depth_grouped:
+        zero_pad=False
+        reflective_pad=False
+    else:
+        zero_pad=True
+        reflective_pad=True
+
+    train_dataset = Image3DDataset(train_df, path_to_img_train, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
+
+    valid_dataset = Image3DDataset(valid_df, path_to_img_train, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
 
     return train_dataset, valid_dataset
 
 def get_optimizer(name, parameters, lr, weight_decay):
     
-
     if name == 'Adam':
         half_precision = False
         eps = 1e-4 if half_precision else 1e-08
@@ -112,6 +122,24 @@ def get_optimizer(name, parameters, lr, weight_decay):
 #
 # run
 #
+
+def print_params(params):
+    params_string = (
+        f"\n[params]\n"
+        f"max_depth = {params['max_depth']}\n"
+        f"depth_grouped = {params['depth_grouped']}\n"
+        f"\n"
+        f"batch_size_train = {params['batch_size_train']}\n"
+        f"batch_size_valid = {params['batch_size_valid']}\n"
+        f"max_iter = {params['max_iter']}\n"
+        f"valid_iters = {params['valid_iters']}\n"
+        f"\n"
+        f"optimizer_name = {params['optimizer_name']}\n"
+        f"learning_rate = {params['learning_rate']}\n"
+        f"weight_decay = {params['weight_decay']}\n"
+    )
+    print(params_string)
+
 def run(
     model,
     device,
@@ -121,6 +149,9 @@ def run(
     reduce_train=False,
     train_number=0,
     valid_number=0,
+
+    max_depth=64,
+    depth_grouped=False,
 
     batch_size_train=32,
     batch_size_valid=32,
@@ -139,12 +170,20 @@ def run(
     seed = 2021
     seed_everything(seed)
 
-    train_dataset, valid_dataset = get_dataset(path_to_data, path_to_img, reduce_train, train_number, valid_number)
+    train_dataset, valid_dataset = get_dataset(path_to_data, path_to_img, reduce_train, train_number, valid_number, max_depth, depth_grouped)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
-    valid_loader = DataLoader(valid_dataset, batch_size=batch_size_valid, shuffle=False)
+    if depth_grouped:
+        t_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+        v_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False)
 
-    print(f'[data] DataLoader size, train: {len(train_loader)}, valid: {len(valid_loader)}')
+        train_loader = DepthGroupedDataset(t_loader, batch_size=batch_size_train, max_depth=max_depth)
+        valid_loader = DepthGroupedDataset(v_loader, batch_size=batch_size_valid, max_depth=max_depth)
+
+    else:
+        train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
+        valid_loader = DataLoader(valid_dataset, batch_size=batch_size_valid, shuffle=False)
+
+        print(f'[data] DataLoader size, train: {len(train_loader)}, valid: {len(valid_loader)}')
 
     criterion = nn.BCEWithLogitsLoss()
 
@@ -165,20 +204,6 @@ def run(
 # main
 #
 
-def print_params(params):
-    params_string = (
-        f"\n[params]\n"
-        f"batch_size_train = {params['batch_size_train']}\n"
-        f"batch_size_valid = {params['batch_size_valid']}\n"
-        f"max_iter = {params['max_iter']}\n"
-        f"valid_iters = {params['valid_iters']}\n"
-        f"\n"
-        f"optimizer_name = {params['optimizer_name']}\n"
-        f"learning_rate = {params['learning_rate']}\n"
-        f"weight_decay = {params['weight_decay']}\n"
-    )
-    print(params_string)
-
 def main(path_to_data, path_to_img):
 
     print('[main]')
@@ -192,6 +217,9 @@ def main(path_to_data, path_to_img):
         reduce_train=True,
         train_number=20,
         valid_number=10,
+
+        max_depth=256,
+        depth_grouped=True,
 
         batch_size_train=2,
         batch_size_valid=2,

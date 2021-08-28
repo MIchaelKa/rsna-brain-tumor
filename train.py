@@ -87,6 +87,8 @@ def train_num_iter(
         x_batch = x_batch.to(device, dtype=torch.float32)
         y_batch = y_batch.to(device, dtype=torch.long)
 
+        # print(x_batch.shape)
+
         output = model(x_batch)
 
         # TODO: will be faster to return float from the dataset?
@@ -94,6 +96,8 @@ def train_num_iter(
 
         # TODO:
         # output = output.squeeze(1)
+
+        # print(output.shape, y_batch.shape)
 
         loss = criterion(output.squeeze(1), y_batch)
         # loss = criterion(output, y_batch)

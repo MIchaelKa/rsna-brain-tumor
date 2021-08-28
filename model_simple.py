@@ -48,17 +48,26 @@ class Simple3DNet(nn.Module):
         # self.fc = nn.Linear(512, 1)
         
         # 256*4*16*16 = 262144
-        self.fc = nn.Linear(256*4*16*16, 1)
+        # self.fc = nn.Linear(256*4*16*16, 1)
 
-        # 256*2*8*8 = 32768
-        # self.fc = nn.Linear(512*2*8*8, 1)
-
-        
-        
+        self.fc = nn.Linear(256*16*16, 1)
+    
         
     def forward(self, x):  
         x = self.backbone(x)
         # x = self.avgpool(x)
+
+        # print(x.shape)
+
+        # avg_pool = torch.mean(x, 2)
+
+        x = torch.mean(x, 2)
+
+        # print(x.shape)
+
         x = torch.flatten(x, 1)
+
+        # print(x.shape)
+
         x = self.fc(x)
         return x
