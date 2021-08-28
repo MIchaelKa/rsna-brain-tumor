@@ -2,6 +2,7 @@ import torch
 import time
 
 from utils import format_time
+from utils import display_memory
 
 from metrics import AccuracyMeter, AverageMeter
 

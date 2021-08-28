@@ -27,6 +27,11 @@ def seed_everything(seed):
 def get_num_of_params(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
+def display_memory(device):
+    torch.cuda.empty_cache()
+    memory = torch.cuda.memory_allocated(device)
+    print("{:.3f} GB".format(memory / 1024 ** 3))
+
 #
 # time utils
 #

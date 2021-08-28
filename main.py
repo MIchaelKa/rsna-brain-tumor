@@ -49,14 +49,10 @@ def get_dataset(
     train_number,
     valid_number,
     max_depth,
+    reflective_pad,
     depth_grouped
 ):
     IMG_SIZE = 256
-    MAX_DEPTH = 64
-    
-    # PATH_TO_DATA = './data/'
-    # IMG_PATH_TRAIN = os.path.join(PATH_TO_DATA, 'rsna-brain-tumor-data', 'train')
-    # IMG_PATH_TEST = os.path.join(PATH_TO_DATA, 'rsna-brain-tumor-data', 'test')
 
     path_to_img_train = os.path.join(path_to_img, 'train')
 
@@ -82,15 +78,14 @@ def get_dataset(
         print(f'[data] Reduced dataset size, train: {len(train_df)}, valid: {len(valid_df)}')
 
 
+    # TODO: one param + remove expend C, raw_output
     if depth_grouped:
         zero_pad=False
         reflective_pad=False
     else:
         zero_pad=True
-        reflective_pad=True
 
     train_dataset = Image3DDataset(train_df, path_to_img_train, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
-
     valid_dataset = Image3DDataset(valid_df, path_to_img_train, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
 
     return train_dataset, valid_dataset
@@ -152,6 +147,7 @@ def run(
 
     max_depth=64,
     depth_grouped=False,
+    reflective_pad=False,
 
     batch_size_train=32,
     batch_size_valid=32,
@@ -170,7 +166,7 @@ def run(
     seed = 2021
     seed_everything(seed)
 
-    train_dataset, valid_dataset = get_dataset(path_to_data, path_to_img, reduce_train, train_number, valid_number, max_depth, depth_grouped)
+    train_dataset, valid_dataset = get_dataset(path_to_data, path_to_img, reduce_train, train_number, valid_number, max_depth, reflective_pad, depth_grouped)
 
     if depth_grouped:
         t_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
