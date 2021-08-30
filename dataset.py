@@ -25,11 +25,19 @@ class Image3DDataset(Dataset):
         # name = 'Image-100.png'
         image_names = sorted(os.listdir(images_path), key=lambda name: int(name[6:][:-4]))
 
-        # take slices from the middle
+        
         image_num = len(image_names)
+
         if image_num > self.max_depth:
-            start_index = (image_num - self.max_depth) // 2
-            image_names = image_names[start_index:self.max_depth+start_index]
+            # take slices from the middle
+            # start_index = (image_num - self.max_depth) // 2
+            # image_names = image_names[start_index:self.max_depth+start_index]
+
+            # TODO: sometimes(65>64) it can be too agressive
+            # take slices with interval
+            interval = image_num // self.max_depth + 1
+            image_names = image_names[::interval]
+            # print(image_num, interval)
 
         images = []
 
@@ -81,6 +89,7 @@ class Image3DDataset(Dataset):
         image_3d = image_3d[:, y_min_all:y_max_all, x_min_all:x_max_all]
         # print(image_3d.shape)
 
+        # TODO: try to use torchio
         images = []
         for image in image_3d:
             if self.transform: 

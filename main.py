@@ -124,6 +124,7 @@ def print_params(params):
         f"\n[params]\n"
         f"max_depth = {params['max_depth']}\n"
         f"depth_grouped = {params['depth_grouped']}\n"
+        f"reflective_pad = {params['reflective_pad']}\n"
         f"\n"
         f"batch_size_train = {params['batch_size_train']}\n"
         f"batch_size_valid = {params['batch_size_valid']}\n"
