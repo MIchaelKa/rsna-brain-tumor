@@ -38,9 +38,10 @@ class ResNet3D(nn.Module):
     def __init__(self):
         super().__init__()
 
-        layers = [2, 2, 2]
+        layers = [1, 1]
 
-        channels = [64, 128, 256]
+        channels = [64, 256, 512]
+
         # channels = [64, 256, 512]
 
         # TODO: less aggressive stride along D direction?
@@ -56,11 +57,11 @@ class ResNet3D(nn.Module):
         )
 
         self.layer1 = self._make_layer(layers[0], channels[0], channels[0], 1)
-        self.layer2 = self._make_layer(layers[1], channels[0], channels[1], 2)
-        self.layer3 = self._make_layer(layers[2], channels[1], channels[2], 2)
+        self.layer2 = self._make_layer(layers[1], channels[0], channels[2], 2)
+        # self.layer3 = self._make_layer(layers[2], channels[1], channels[2], 2)
 
         self.avgpool = nn.AdaptiveAvgPool3d((1, 1, 1))
-        self.fc = nn.Linear(256, 1)
+        self.fc = nn.Linear(512, 1)
 
         # 256*4*16*16 = 262144
         # self.fc = nn.Linear(256*4*16*16, 1)
@@ -83,7 +84,7 @@ class ResNet3D(nn.Module):
         x = self.stem(x)
         x = self.layer1(x)
         x = self.layer2(x)
-        x = self.layer3(x)
+        # x = self.layer3(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)  

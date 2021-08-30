@@ -49,11 +49,12 @@ def get_dataset(
     train_number,
     valid_number,
     max_depth,
+    depth_grouped,
     reflective_pad,
-    depth_grouped
+    mri_types,
+    reduce_mode
 ):
     IMG_SIZE = 256
-    MRI_TYPES = ['FLAIR', 'T1w', 'T1wCE', 'T2w']
 
     path_to_img_train = os.path.join(path_to_img, 'train')
 
@@ -86,8 +87,27 @@ def get_dataset(
     else:
         zero_pad=True
 
-    train_dataset = Image3DDataset(train_df, path_to_img_train, MRI_TYPES, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
-    valid_dataset = Image3DDataset(valid_df, path_to_img_train, MRI_TYPES, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
+    train_dataset = Image3DDataset(
+        train_df,
+        path_to_img_train,
+        mri_types=mri_types,
+        reduce_mode=reduce_mode,
+        max_depth=max_depth,
+        zero_pad=zero_pad,
+        reflective_pad=reflective_pad,
+        transform=get_train_transform(IMG_SIZE)
+    )
+
+    valid_dataset = Image3DDataset(
+        valid_df,
+        path_to_img_train,
+        mri_types=mri_types,
+        reduce_mode=reduce_mode,
+        max_depth=max_depth,
+        zero_pad=zero_pad,
+        reflective_pad=reflective_pad,
+        transform=get_train_transform(IMG_SIZE)
+    )
 
     return train_dataset, valid_dataset
 
@@ -150,6 +170,8 @@ def run(
     max_depth=64,
     depth_grouped=False,
     reflective_pad=False,
+    mri_types=[],
+    reduce_mode=0,
 
     batch_size_train=32,
     batch_size_valid=32,
@@ -168,7 +190,11 @@ def run(
     seed = 2021
     seed_everything(seed)
 
-    train_dataset, valid_dataset = get_dataset(path_to_data, path_to_img, reduce_train, train_number, valid_number, max_depth, reflective_pad, depth_grouped)
+    train_dataset, valid_dataset = get_dataset(
+        path_to_data, path_to_img,
+        reduce_train, train_number, valid_number,
+        max_depth, depth_grouped, reflective_pad, mri_types, reduce_mode
+    )
 
     if depth_grouped:
         t_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
@@ -182,6 +208,8 @@ def run(
         valid_loader = DataLoader(valid_dataset, batch_size=batch_size_valid, shuffle=False)
 
         print(f'[data] DataLoader size, train: {len(train_loader)}, valid: {len(valid_loader)}')
+
+    # return train_loader
 
     criterion = nn.BCEWithLogitsLoss()
 
@@ -207,6 +235,8 @@ def main(path_to_data, path_to_img):
     print('[main]')
 
     device = get_device()
+
+    MRI_TYPES = ['FLAIR', 'T1w', 'T1wCE', 'T2w']
  
     params = dict(
         # data
@@ -219,6 +249,8 @@ def main(path_to_data, path_to_img):
         max_depth=32,
         depth_grouped=False,
         reflective_pad=False,
+        mri_types=MRI_TYPES,
+        reduce_mode=0, # 0 == middle, 1 == interval
 
         batch_size_train=2,
         batch_size_valid=2,

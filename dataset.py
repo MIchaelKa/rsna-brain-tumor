@@ -6,11 +6,12 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class Image3DDataset(Dataset):
-    def __init__(self, df, path, mri_types, max_depth=None, zero_pad=True, reflective_pad=False, transform=None):
+    def __init__(self, df, path, mri_types, reduce_mode=0, max_depth=None, zero_pad=True, reflective_pad=False, transform=None):
 
         self.df = df
         self.path = path
         self.mri_types = mri_types
+        self.reduce_mode = reduce_mode
         self.max_depth = max_depth
         self.zero_pad = zero_pad
         self.reflective_pad = reflective_pad
@@ -30,14 +31,17 @@ class Image3DDataset(Dataset):
 
         if image_num > self.max_depth:
             # take slices from the middle
-            # start_index = (image_num - self.max_depth) // 2
-            # image_names = image_names[start_index:self.max_depth+start_index]
-
-            # TODO: sometimes(65>64) it can be too agressive
-            # take slices with interval
-            interval = image_num // self.max_depth + 1
-            image_names = image_names[::interval]
-            # print(image_num, interval)
+            if self.reduce_mode==0:
+                start_index = (image_num - self.max_depth) // 2
+                image_names = image_names[start_index:self.max_depth+start_index]
+            elif self.reduce_mode==1:
+                # TODO: sometimes(65>64) it can be too agressive
+                # take slices with interval
+                interval = image_num // self.max_depth + 1
+                image_names = image_names[::interval]
+                # print(image_num, interval)
+            else:
+                print(f'[dataset] Not valid reduce_mode={self.reduce_mode}')
 
         images = []
 
