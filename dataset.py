@@ -6,10 +6,11 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 class Image3DDataset(Dataset):
-    def __init__(self, df, path, max_depth=None, zero_pad=True, reflective_pad=True, transform=None):
+    def __init__(self, df, path, mri_types, max_depth=None, zero_pad=True, reflective_pad=False, transform=None):
 
         self.df = df
         self.path = path
+        self.mri_types = mri_types
         self.max_depth = max_depth
         self.zero_pad = zero_pad
         self.reflective_pad = reflective_pad
@@ -17,19 +18,9 @@ class Image3DDataset(Dataset):
         
     def __len__(self):
         return self.df.shape[0]
-    
-    def __getitem__(self, index):
-        label = self.df['MGMT_value'][index]
-        case_id = self.df['BraTS21ID'][index]
-        case_id = f'{case_id:0>5d}'
 
-        # - FLAIR
-        # - T1w
-        # - T1wCE
-        # - T2w
-        MRI_TYPE = 'FLAIR'
-        
-        images_path = os.path.join(self.path, case_id, MRI_TYPE)
+    def get_image(self, case_id, mri_type):
+        images_path = os.path.join(self.path, case_id, mri_type)
 
         # name = 'Image-100.png'
         image_names = sorted(os.listdir(images_path), key=lambda name: int(name[6:][:-4]))
@@ -145,6 +136,21 @@ class Image3DDataset(Dataset):
 
         # TODO: remove when used with IterableDataset
         image_3d = np.expand_dims(image_3d, axis=0) # C x D x H x W
+
+        return image_3d
+
+    
+    def __getitem__(self, index):
+        label = self.df['MGMT_value'][index]
+        case_id = self.df['BraTS21ID'][index]
+        case_id = f'{case_id:0>5d}'
+
+        images = []
+        for mri_type in self.mri_types:
+            image = self.get_image(case_id, mri_type)
+            images.append(image)
+        
+        image_3d = np.concatenate(images, 1)
           
         return image_3d, label
 

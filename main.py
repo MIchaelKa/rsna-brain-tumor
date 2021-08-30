@@ -53,6 +53,7 @@ def get_dataset(
     depth_grouped
 ):
     IMG_SIZE = 256
+    MRI_TYPES = ['FLAIR', 'T1w', 'T1wCE', 'T2w']
 
     path_to_img_train = os.path.join(path_to_img, 'train')
 
@@ -85,8 +86,8 @@ def get_dataset(
     else:
         zero_pad=True
 
-    train_dataset = Image3DDataset(train_df, path_to_img_train, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
-    valid_dataset = Image3DDataset(valid_df, path_to_img_train, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
+    train_dataset = Image3DDataset(train_df, path_to_img_train, MRI_TYPES, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
+    valid_dataset = Image3DDataset(valid_df, path_to_img_train, MRI_TYPES, max_depth, zero_pad, reflective_pad, get_train_transform(IMG_SIZE))
 
     return train_dataset, valid_dataset
 
@@ -214,8 +215,9 @@ def main(path_to_data, path_to_img):
         train_number=20,
         valid_number=10,
 
-        max_depth=256,
-        depth_grouped=True,
+        max_depth=32,
+        depth_grouped=False,
+        reflective_pad=False,
 
         batch_size_train=2,
         batch_size_valid=2,
